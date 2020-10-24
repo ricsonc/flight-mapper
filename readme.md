@@ -12,7 +12,7 @@ Directly inspired from [gcmap](http://www.gcmap.com/) but with the following fea
 - much slower to run
 
 
-What if I want to run the code?
+*What if I want to run the code?*
 
 I recall having lots of problems with installing the dependencies, (perhaps even having to edit some of the cod ein the packages), and also my virtualenv is currently broken so I don't have a list of dependencies at all -- you'll have to figure that out yourself.
 
