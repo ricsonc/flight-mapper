@@ -1,6 +1,6 @@
 This is some code to plot flights you've taken on a globe.
 
-![stuff]()
+![stuff](https://github.com/ricsonc/flight-mapper/blob/main/out.gif?raw=true)
 
 Directly inspired from [gcmap](http://www.gcmap.com/) but with the following features
 
