@@ -32,7 +32,7 @@ class Orthographic(ccrs.Orthographic):
 
 def get_ortho(lat, lon):
     proj = Orthographic(central_latitude=lat, central_longitude=lon)
-
+    
     # Re-implement the cartopy code to figure out the boundary.
     a = np.float(proj.globe.semimajor_axis or 6378137.0)
     b = np.float(proj.globe.semiminor_axis or a)
@@ -41,7 +41,7 @@ def get_ortho(lat, lon):
     return proj
 
 class Airport2Pos(object):
-    def __init__(self, fn = '/home/ricson /code/flightmap/airports'):
+    def __init__(self, fn = '/home/ricson/code/flightmap/airports'):
         self.pos = {}
         with open(fn, 'r') as f:
             cr = reader(f)
@@ -79,13 +79,10 @@ def embiggen(line, scale = 0.0):
 
 def heighten(line, scale):
     #return line #ignore everything here...
-
     diffs = np.diff(line, axis = 1)
     dists = np.linalg.norm(diffs, axis = 0)
     cumdists = np.concatenate((np.zeros(1), np.cumsum(dists)), axis = 0)
-
     scales = np.sin(cumdists * np.pi / cumdists[-1])
-
     max_height = 0.025 + 2E-5 * np.sqrt(scale)
     height_factor = 1 + scales * max_height
     return height_factor * line
@@ -111,8 +108,8 @@ def draw_lines(startend, k, info, proj = None):
     line = sgeom.LineString(startend)
 
     a, b, c, d = startend[0][0], startend[0][1], startend[1][0], startend[1][1]
-    ll = sgeom.LineString(((a,c,), (b,d)))
-    length = geodesic.Geodesic().geometry_length(ll) 
+    ll = sgeom.LineString([(a,b,), (c,d)])
+    length = geodesic.Geodesic().geometry_length(ll)
     
     linefront = proj.project_geometry(line, ccrs.Geodetic(globe=proj.globe))
     lineback = projrev.project_geometry(line, ccrs.Geodetic(globe=proj.globe))
@@ -133,7 +130,7 @@ def draw_lines(startend, k, info, proj = None):
     #     lineback_part[:,0] = (linefront_part[:,-1] + lineback_part[:,1]) / 2.0
     #i think i know how we can get rid of this...
     line_full = np.concatenate([linefront_part, lineback_part], axis = 1)
-
+    
     flag = True
     while flag:
         for i in range(line_full.shape[1]):
@@ -184,7 +181,6 @@ def draw_lines(startend, k, info, proj = None):
         line_full = np.concatenate((line_full, np.reshape(eproj_loc, (2,1))),axis = 1)
 
     ###
-    
     line_out = heighten(line_full, length)
 
     #now we do some trimming...
@@ -194,16 +190,13 @@ def draw_lines(startend, k, info, proj = None):
     2. if back part, no front part, keep only middle segment (if any)
     3. if front and back, then keep first two segments
     '''
-
-    #no trimming
-    #return M(line = line_out, count = k)
     
     N = line_out.shape[1]
     if N == 0:
         return None
-    
+
     norms = np.linalg.norm(line_out, axis = 0)
-    
+
     if not lineback: #front only, return everything
         start = None
         end = None
@@ -340,8 +333,8 @@ def render_and_write(lon, lat, full, flights):
                 continue
             alpha = 1.0 - diff / 5E+4 #1 -> 0
 
-        plt.plot([x_], [y_], c='white', marker='o', markersize=4, mfc='none', alpha = alpha)
-        plt.text(x_, y_, k, c='white', alpha = alpha)
+        ax.plot([x_], [y_], c='white', marker='o', markersize=4, mfc='none', alpha = alpha, clip_in =False)
+        ax.text(x_, y_, k, c='white', alpha = alpha, flip_in=False)
         
     #what is happening here?
     for group, flyer in zip(paths, flyers.values()):
@@ -353,31 +346,30 @@ def render_and_write(lon, lat, full, flights):
         
         line = group.line
         weight = 1.4+group.count**0.7 #was 0.3...
-        plt.plot(*line, linewidth=1.0*weight, c=color_dict[flyer], alpha = 0.25, solid_capstyle='round')
+        ax.plot(*line, linewidth=1.0*weight, c=color_dict[flyer], alpha = 0.25, solid_capstyle='round', clip_on=False)
 
-        plt.plot(*line, linewidth=0.3*weight, c=color_dict[flyer], alpha = 1.0, solid_capstyle='round')
+        ax.plot(*line, linewidth=0.3*weight, c=color_dict[flyer], alpha = 1.0, solid_capstyle='round', clip_on=False)
 
     
     #AXES
     
     margin = 0.15
     W = 2*np.pi*1e6*(1 + margin)
-    plt.xlim(-W,W)
-    plt.ylim(-W,W)
+    ax.xlim(-W,W)
+    ax.ylim(-W,W)
 
     import matplotlib.ticker as mticker
 
     tick_res = 10 if full else 45
     gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=False,
-                      linewidth=1, color='lime', alpha=1.0, linestyle='dotted')
+                      linewidth=1, color='lime', alpha=1.0, linestyle='dotted', clip_in=False)
 
     gl.ylocator = mticker.FixedLocator(np.linspace(-90., 90., 180//tick_res))
-    gl.xlocator = mticker.FixedLocator(np.linspace(0., 360., 360//tick_res))
+    gl.xlocator = mticker.FixedLocator(np.linspace(-180., 180., 360//tick_res))
     
     #CLEAN UP
 
-    ax.outline_patch.set_visible(False)
-    ax.background_patch.set_visible(False)
+    ax.patch.set_visible(False)
     ax.set_xmargin(0)
     ax.set_ymargin(0)
     ax.axis('off')
@@ -431,13 +423,13 @@ if __name__ == '__main__':
 
     res = '50m' if FULLRUN else '110m'
     ax.add_feature(cfeature.NaturalEarthFeature('physical', 'land', res, edgecolor='red', facecolor='none'), linewidth=0.8)
-    # ax.add_feature(cfeature.NaturalEarthFeature('physical', 'ocean', res, edgecolor='none', facecolor=blue), linewidth=0.0)
+    # # ax.add_feature(cfeature.NaturalEarthFeature('physical', 'ocean', res, edgecolor='none', facecolor=blue), linewidth=0.0)
     ax.add_feature(cfeature.NaturalEarthFeature('physical', 'lakes', res, edgecolor='red', facecolor='none'), linewidth=0.8)
 
     # ax.add_feature(cartopy.feature.LAND, scale='50m', facecolor='black')
     # ax.add_feature(cartopy.feature.OCEAN, scale='50m', facecolor='grey')
 
-    from data import txts
+    from data2 import txts
     #txts = txts[:1]
     
     # print (','.join(txts))
@@ -468,8 +460,8 @@ if __name__ == '__main__':
 
             #adjustable alpha... gridlines...
 
-        plt.plot([x_], [y_], c='white', marker='o', markersize=4, mfc='none', alpha = alpha)
-        plt.text(x_, y_, k, c='white', alpha = alpha)
+        ax.plot([x_], [y_], c='white', marker='o', markersize=4, mfc='none', alpha = alpha, clip_on=False)
+        ax.text(x_, y_, k, c='white', alpha = alpha, clip_on=False)
         
         # plt.plot([x], [y], c='white', marker='o', markersize=4, mfc='none', transform=ccrs.PlateCarree())
         # plt.text(x, y, k, c='white', transform=ccrs.PlateCarree())
@@ -484,9 +476,9 @@ if __name__ == '__main__':
         
         line = group.line
         weight = 0.3+group.count**0.7 #... controls thickness
-        plt.plot(*line, linewidth=1.0*weight, c=color_dict[flyer], alpha = 0.2, solid_capstyle='round')#, marker='o') 
+        plt.plot(*line, linewidth=1.0*weight, c=color_dict[flyer], alpha = 0.2, solid_capstyle='round', clip_on=False)#, marker='o') 
 
-        plt.plot(*line, linewidth=0.3*weight, c=color_dict[flyer], alpha = 1.0, solid_capstyle='round')
+        plt.plot(*line, linewidth=0.3*weight, c=color_dict[flyer], alpha = 1.0, solid_capstyle='round', clip_on=False)
 
     if not NA:
         #margin = 0.03
@@ -506,14 +498,18 @@ if __name__ == '__main__':
     import matplotlib.ticker as mticker
 
     gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=False,
-                      linewidth=1, color='lime', alpha=1.0, linestyle='dotted')
+                      linewidth=1, color='lime', alpha=1.0, linestyle='dotted', clip_on=False)
 
-    gl.ylocator = mticker.FixedLocator(np.linspace(-90., 90., 18))
-    gl.xlocator = mticker.FixedLocator(np.linspace(0., 360., 36))
-    #CLEAN UP
+    #fix this...
+    tick_res = 10
+    gl.ylocator = mticker.FixedLocator(np.linspace(-90., 90., 180//tick_res))
+    gl.xlocator = mticker.FixedLocator(np.linspace(-180., 180., 360//tick_res))
+    # gl.xlocator = mticker.FixedLocator(np.linspace(0., 360., 36))
+    # CLEAN UP
 
-    ax.outline_patch.set_visible(False)
-    ax.background_patch.set_visible(False)
+    ax.patch.set_visible(False)
+    # ax.outline_patch.set_visible(False)
+    # ax.background_patch.set_visible(False)
 
     ax.set_xmargin(0)
     ax.set_ymargin(0)
