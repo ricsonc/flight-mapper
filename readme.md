@@ -14,6 +14,6 @@ Directly inspired from [gcmap](http://www.gcmap.com/) but with the following fea
 
 *What if I want to run the code?*
 
-I recall having lots of problems with installing the dependencies, (perhaps even having to edit some of the cod ein the packages), and also my virtualenv is currently broken so I don't have a list of dependencies at all -- you'll have to figure that out yourself.
+See requirements.txt for the environment. Some special care might need to be taken for cartopy -- refer to cartopy installation instructions.
 
-Other than that, simply edit data.py such that txts is a list of strings, and each string is a query such as one you might pass in to gcmap -- a very simple example might be `txts = ['SFO-SEA,SFO-YYZ,', 'PHX-OKC,']`. Play around with gcmap to get more familiar with the possibilities. Each string gets plotted in a separate color. For more plotting options, just dig around in the code. Use render to dump all 360 views and generate a video. 
+Other than that, simply edit data.py such that txts is a list of strings, and each string is a query such as one you might pass in to gcmap -- a very simple example might be `txts = ['SFO-SEA,SFO-YYZ,', 'PHX-OKC,']`. Play around with gcmap to get more familiar with the possibilities. Each string gets plotted in a separate color. For more plotting options, just dig around in the code. Use render.sh to dump all 360 views and generate a video. 
